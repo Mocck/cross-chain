@@ -34,11 +34,17 @@ export class CrossChainBettingSDK {
     return this;
   }
 
-  private getContract(chainId: string, withSigner: boolean = false): Contract {
+  private async getContract(chainId: string, withSigner: boolean = false): Promise<Contract> {
     const chainConfig = this.config.chains[chainId];
     if (!chainConfig) throw new CrossChainError(ERROR_CODES.WRONG_CHAIN, `Chain ${chainId} not configured.`);
 
     const provider = this.providers[chainId];
+
+    const code = await provider.getCode(chainConfig.betManagerAddress);
+    if (code === '0x' || code.length <= 2) {
+      throw new CrossChainError(ERROR_CODES.RELAYER_FAILED, `BetManager not deployed at ${chainConfig.betManagerAddress} on chain ${chainId}`);
+    }
+
     const contract = new ethers.Contract(chainConfig.betManagerAddress, BET_MANAGER_ABI, provider);
 
     if (withSigner) {
@@ -60,7 +66,7 @@ export class CrossChainBettingSDK {
   }) {
     this.logger.info(`Placing cross-chain bet to chain ${params.targetChainId}...`);
     try {
-      const contract = this.getContract(params.sourceChainId, true);
+      const contract = await this.getContract(params.sourceChainId, true);
       const value = BigInt(params.amount);
 
       const tx = await contract.placeBetCrossChain(
@@ -94,8 +100,8 @@ export class CrossChainBettingSDK {
       }
 
       if (!betId) {
-        this.logger.warn("BetCreatedCrossChain event not found in transaction receipt");
-        this.logger.debug(`Receipt logs: ${JSON.stringify(receipt.logs.map((l: any) => ({ address: l.address, topics: l.topics })))}`);
+        this.logger.error("BetCreatedCrossChain event not found - tx may have reverted or contract not deployed");
+        throw new CrossChainError(ERROR_CODES.RELAYER_FAILED, "Bet failed: no BetCreatedCrossChain event emitted");
       }
 
       this.logger.info(`Bet placed! BetID: ${betId}`);
@@ -113,7 +119,7 @@ export class CrossChainBettingSDK {
   async getBetInfo(params: { betId: string; chainId: string }): Promise<BetInfo> {
     this.logger.debug(`Fetching bet info for ${params.betId} on chain ${params.chainId}`);
     return withRetry(async () => {
-      const contract = this.getContract(params.chainId);
+      const contract = await this.getContract(params.chainId);
       const result = await contract.bets(params.betId);
 
       return {
@@ -144,7 +150,7 @@ export class CrossChainBettingSDK {
         throw new CrossChainError(ERROR_CODES.GAME_EXPIRED, "Bet has not timed out yet");
       }
 
-      const contract = this.getContract(params.chainId, true);
+      const contract = await this.getContract(params.chainId, true);
       const tx = await contract.refundTimeoutBet(params.betId);
       const receipt = await tx.wait();
 
@@ -158,7 +164,7 @@ export class CrossChainBettingSDK {
 
   /// 4. 查询合约 nonce（用于计算 messageId）
   async getNonce(chainId: string): Promise<number> {
-    const contract = this.getContract(chainId);
+    const contract = await this.getContract(chainId);
     const nonce = await contract.nonce();
     return Number(nonce);
   }

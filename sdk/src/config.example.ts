@@ -1,14 +1,20 @@
 // SDK 配置示例
-// 使用已部署的合约地址
+// 双链本地测试网络
 
 import { SDKConfig } from './types';
 
 export const LOCAL_CONFIG: SDKConfig = {
   chains: {
-    // 本地测试网络 1
     '31337': {
       chainId: '31337',
       rpcUrl: 'http://127.0.0.1:8545',
+      betManagerAddress: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+      settlementManagerAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
+      verifierAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+    },
+    '31338': {
+      chainId: '31338',
+      rpcUrl: 'http://127.0.0.1:8546',
       betManagerAddress: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
       settlementManagerAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
       verifierAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3'

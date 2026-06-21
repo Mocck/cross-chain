@@ -16,7 +16,7 @@ import sys
 # 导入核心模块
 from chain_adapter import ChainAdapter
 from event_listener import EventListener
-from message_signer import MessageSigner
+from message_signer import MessageSigner, MultiChainSigner
 from message_relayer import MessageRelayer
 
 app = Flask(__name__)
@@ -81,6 +81,14 @@ class MessageStore:
                 for msg_id, msg_data in self.messages.items()
                 if msg_data.get('status') in [MessageStatus.PENDING, MessageStatus.CONFIRMED, MessageStatus.SIGNED]
             }
+
+    def get_messages_by_round(self, round_id: str, target_chain_id: str) -> list:
+        """根据 roundId 和目标链查找已中继的赌注，用于结算回传"""
+        with self.lock:
+            return [
+                msg for msg in self.messages.values()
+                if msg.get('roundId') == round_id and msg.get('targetChainId') == target_chain_id
+            ]
 
 # 全局存储实例
 store = MessageStore()
@@ -253,14 +261,8 @@ def init_relayer_components():
     # 1. 初始化链适配器
     chain_adapter = ChainAdapter(CONFIG)
 
-    # 2. 为每条链初始化消息签名器（使用第一条链作为示例）
-    # 实际生产环境应该为每条链分别初始化
-    first_network = list(CONFIG['networks'].values())[0]
-    message_signer = MessageSigner(
-        relayer_private_keys=CONFIG['relayers'],
-        verifier_address=first_network['verifier_address'],
-        chain_id=first_network['chain_id']
-    )
+    # 2. 初始化多链签名器（每条链独立的 EIP-712 domain）
+    message_signer = MultiChainSigner(CONFIG['relayers'], CONFIG['networks'])
 
     # 3. 初始化事件监听器
     event_listener = EventListener(chain_adapter, store, CONFIG)

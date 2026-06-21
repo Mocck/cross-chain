@@ -19,10 +19,17 @@ const config = {
     hardhat: {
       type: "edr-simulated",
       chainType: "l1",
+      chainId: process.env.HARDHAT_CHAIN_ID ? parseInt(process.env.HARDHAT_CHAIN_ID) : 31337,
       accounts: {
         count: 10,  // 修改账户数量（默认20）
         accountsBalance: "10000000000000000000000" // 每个账户10000 ETH
       }
+    },
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    },
+    localhostB: {
+      url: "http://127.0.0.1:8546"
     }
   }
 };

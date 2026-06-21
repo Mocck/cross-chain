@@ -101,8 +101,8 @@ class MessageRelayer:
                 'timeout': msg_data['timeout']
             }
 
-            # 签名
-            signatures = self.message_signer.sign_message(cross_chain_message)
+            # 签名（使用目标链的 verifier 做 EIP-712 domain）
+            signatures = self.message_signer.sign_for_chain(cross_chain_message, msg_data['targetChainId'])
 
             # 保存签名
             msg_data['signatures_data'] = signatures
@@ -126,43 +126,62 @@ class MessageRelayer:
             msg_data: 消息数据
         """
         target_chain_id = msg_data['targetChainId']
+        msg_type = msg_data.get('msgType', 0)
 
         try:
-            # 获取目标链的 Web3 和 Verifier 合约
             w3 = self.chain_adapter.get_web3(target_chain_id)
-            verifier = self.chain_adapter.get_contract(target_chain_id, 'verifier')
-
-            if not w3 or not verifier:
+            if not w3:
                 print(f"[ERROR] Target chain {target_chain_id} not available")
                 return
 
-            # 构造消息元组
+            # 构造消息元组（匹配 CrossChainMessage 结构体 10 个字段）
             message_tuple = (
-                int(message_id, 16),  # messageId
-                int(msg_data['sourceChainId']),  # sourceChainId
-                int(msg_data['targetChainId']),  # targetChainId
-                Web3.to_checksum_address(msg_data['sender']),  # sender
-                Web3.to_checksum_address(msg_data['receiver']),  # receiver
-                msg_data['msgType'],  # msgType
-                bytes.fromhex(msg_data['data'].replace('0x', '')),  # data
-                msg_data['timestamp'],  # timestamp
-                msg_data['timeout']  # timeout
+                int(message_id, 16),
+                int(msg_data['sourceChainId']),
+                int(msg_data['targetChainId']),
+                Web3.to_checksum_address(msg_data['sender']),
+                Web3.to_checksum_address(msg_data['receiver']),
+                msg_type,
+                bytes.fromhex(msg_data['data'].replace('0x', '')),
+                msg_data['timestamp'],
+                msg_data['timeout'],
+                b''
             )
 
             # 提取签名
             signatures_data = msg_data.get('signatures_data', [])
             signatures_bytes = [bytes.fromhex(sig['signature'].replace('0x', '')) for sig in signatures_data]
 
-            # 构造交易
-            tx = verifier.functions.verifyMessage(
-                message_tuple,
-                signatures_bytes
-            ).build_transaction({
-                'from': self.sender_account.address,
-                'nonce': w3.eth.get_transaction_count(self.sender_account.address),
-                'gas': 500000,
-                'gasPrice': w3.eth.gas_price
-            })
+            # 根据 msgType 选择目标合约和函数
+            if msg_type == 0:  # BET_CREATED → registerRound
+                target_contract = self.chain_adapter.get_contract(target_chain_id, 'settlement_manager')
+                if not target_contract:
+                    print(f"[ERROR] SettlementManager not available on chain {target_chain_id}")
+                    return
+                tx = target_contract.functions.registerRoundFromCrossChain(
+                    message_tuple, signatures_bytes
+                ).build_transaction({
+                    'from': self.sender_account.address,
+                    'nonce': w3.eth.get_transaction_count(self.sender_account.address),
+                    'gas': 500000,
+                    'gasPrice': w3.eth.gas_price
+                })
+            elif msg_type == 1:  # ROUND_RESULT → executeSettlement
+                target_contract = self.chain_adapter.get_contract(target_chain_id, 'bet_manager')
+                if not target_contract:
+                    print(f"[ERROR] BetManager not available on chain {target_chain_id}")
+                    return
+                tx = target_contract.functions.executeSettlement(
+                    message_tuple, signatures_bytes
+                ).build_transaction({
+                    'from': self.sender_account.address,
+                    'nonce': w3.eth.get_transaction_count(self.sender_account.address),
+                    'gas': 500000,
+                    'gasPrice': w3.eth.gas_price
+                })
+            else:
+                print(f"[ERROR] Unknown msgType: {msg_type}")
+                return
 
             # 签名并发送交易
             signed_tx = self.sender_account.sign_transaction(tx)
