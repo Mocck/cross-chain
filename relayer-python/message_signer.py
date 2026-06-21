@@ -56,17 +56,26 @@ class MessageSigner:
         }
 
     def sign_message(self, cross_chain_message: Dict[str, Any], threshold: int = None) -> List[Dict[str, Any]]:
-        """使用所有 Relayer 私钥签名消息，达到 threshold 即停止"""
+        """使用所有 Relayer 私钥签名消息，达到 threshold 即停止，并自验证"""
         eip712_msg = self.build_eip712_message(cross_chain_message)
         encoded = encode_typed_data(full_message=eip712_msg)
         limit = threshold if threshold is not None else len(self.accounts)
+        sign_hash = self._get_eip712_hash(cross_chain_message)
 
         signatures = []
         for account in self.accounts:
             signed = account.sign_message(encoded)
+            sig_hex = signed.signature.hex()
+
+            # 自验证：ECDSA 恢复地址必须等于签名者
+            recovered = Account._recover_hash(sign_hash, signature=signed.signature)
+            if recovered.lower() != account.address.lower():
+                print(f"[WARN] Self-verification failed for {account.address}, skipping")
+                continue
+
             signatures.append({
                 'address': account.address,
-                'signature': signed.signature.hex()
+                'signature': sig_hex
             })
             if len(signatures) >= limit:
                 break
