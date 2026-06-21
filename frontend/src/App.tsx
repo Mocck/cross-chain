@@ -1,39 +1,46 @@
-// src/App.tsx
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { GameList } from './pages/GameList';
-import { CreateGame } from './pages/CreateGame';
-import { GameDetail } from './pages/GameDetail';
-import { MyRewards } from './pages/MyRewards';
-import { useMetaMask } from './hooks/useMetaMask';
-import { SDKProvider } from './context/SDKContext'; // 导入
+import { SDKProvider, useSDK } from './context/SDKContext';
+import { PlaceBet } from './pages/PlaceBet';
+import { FinalizeRound } from './pages/FinalizeRound';
+import { QueryBet } from './pages/QueryBet';
 
-// 将原有的内容提取为一个子组件，以便使用 useMetaMask hook
 function AppContent() {
-  const { connect, disconnect, account, isActive } = useMetaMask();
+  const { account, isConnected, connectWallet, disconnectWallet, connectDev } = useSDK();
 
   return (
-    <div>
-      <nav style={{ display: 'flex', gap: '10px', margin: '10px' }}>
-        <Link to="/">大厅</Link>
-        <Link to="/create">创建游戏</Link>
-        <Link to="/my-rewards">我的奖励</Link>
-        {!isActive ? (
-          <button onClick={connect}>连接钱包</button>
-        ) : (
-          <span>{account?.slice(0,6)}... <button onClick={disconnect}>断开</button></span>
-        )}
+    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+      <nav style={{
+        display: 'flex', gap: 24, padding: '0.75rem 1.5rem',
+        background: '#fff', borderBottom: '1px solid #e5e7eb',
+        alignItems: 'center', fontSize: '0.9rem', fontWeight: 500,
+      }}>
+        <Link to="/" style={{ textDecoration: 'none', color: '#4f46e5', fontWeight: 700 }}>跨链竞猜</Link>
+        <Link to="/finalize" style={{ textDecoration: 'none', color: '#6b7280' }}>管理员开奖</Link>
+        <Link to="/query" style={{ textDecoration: 'none', color: '#6b7280' }}>查询</Link>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {!isConnected ? (
+            <>
+              <button onClick={connectDev} style={{ padding: '0.4rem 1rem', borderRadius: 6, border: 'none', background: '#4f46e5', color: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>Dev 连接</button>
+              <button onClick={connectWallet} style={{ padding: '0.4rem 1rem', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontSize: '0.8rem' }}>MetaMask</button>
+            </>
+          ) : (
+            <>
+              <span style={{ color: '#059669', fontSize: '0.8rem' }}>● {account?.slice(0, 6)}...{account?.slice(-4)}</span>
+              <button onClick={disconnectWallet} style={{ padding: '0.4rem 1rem', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontSize: '0.8rem' }}>断开</button>
+            </>
+          )}
+        </span>
       </nav>
       <Routes>
-        <Route path="/" element={<GameList />} />
-        <Route path="/create" element={<CreateGame />} />
-        <Route path="/game/:gameId" element={<GameDetail />} />
-        <Route path="/my-rewards" element={<MyRewards />} />
+        <Route path="/" element={<PlaceBet />} />
+        <Route path="/finalize" element={<FinalizeRound />} />
+        <Route path="/query" element={<QueryBet />} />
       </Routes>
     </div>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <SDKProvider>
@@ -42,5 +49,3 @@ function App() {
     </BrowserRouter>
   );
 }
-
-export default App;

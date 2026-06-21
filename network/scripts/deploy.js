@@ -12,14 +12,15 @@ async function main() {
 
   const relayer1 = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
   const relayer2 = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+  const relayer3 = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
 
   const [deployer] = await hre.viem.getWalletClients();
   console.log(`Deployer: ${deployer.account.address}\n`);
 
-  // 1. Deploy MessageVerifier
-  console.log("1/4 Deploying MessageVerifier...");
+  // 1. Deploy MessageVerifier (2-of-3 门限签名)
+  console.log("1/4 Deploying MessageVerifier (2-of-3)...");
   const verifier = await hre.viem.deployContract("MessageVerifier", [
-    [relayer1, relayer2],
+    [relayer1, relayer2, relayer3],
     2n
   ]);
   console.log(`   MessageVerifier: ${verifier.address}`);
@@ -65,6 +66,10 @@ async function main() {
       relayer2: {
         address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
         privateKey: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+      },
+      relayer3: {
+        address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+        privateKey: "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
       }
     },
     note: "Local testnet addresses, deterministic per chain ID"

@@ -262,7 +262,7 @@ def init_relayer_components():
     chain_adapter = ChainAdapter(CONFIG)
 
     # 2. 初始化多链签名器（每条链独立的 EIP-712 domain）
-    message_signer = MultiChainSigner(CONFIG['relayers'], CONFIG['networks'])
+    message_signer = MultiChainSigner(CONFIG['relayers'], CONFIG['networks'], CONFIG.get('threshold', 2))
 
     # 3. 初始化事件监听器
     event_listener = EventListener(chain_adapter, store, CONFIG)

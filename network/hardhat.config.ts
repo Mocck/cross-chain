@@ -21,15 +21,27 @@ const config = {
       chainType: "l1",
       chainId: process.env.HARDHAT_CHAIN_ID ? parseInt(process.env.HARDHAT_CHAIN_ID) : 31337,
       accounts: {
-        count: 10,  // 修改账户数量（默认20）
-        accountsBalance: "10000000000000000000000" // 每个账户10000 ETH
+        count: 10,
+        accountsBalance: "10000000000000000000000"
       }
     },
-    localhost: {
-      url: "http://127.0.0.1:8545"
+    localhost: { url: "http://127.0.0.1:8545" },
+    localhostB: { url: "http://127.0.0.1:8546" },
+    sepolia: {
+      url: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
     },
-    localhostB: {
-      url: "http://127.0.0.1:8546"
+    polygonAmoy: {
+      url: process.env.POLYGON_RPC_URL || "https://rpc-amoy.polygon.technology",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+    },
+    bscTestnet: {
+      url: process.env.BSC_RPC_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+    },
+    arbitrumSepolia: {
+      url: process.env.ARB_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
     }
   }
 };

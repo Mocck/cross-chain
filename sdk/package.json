@@ -2,7 +2,9 @@
   "name": "cross-chain-betting-sdk",
   "version": "1.0.0",
   "description": "SDK abstraction layer for Cross Chain Betting platform",
+  "type": "module",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",

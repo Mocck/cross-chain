@@ -10,11 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "ethers": "^5.7.2",
+    "cross-chain-betting-sdk": "file:../sdk",
+    "ethers": "^6.10.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router-dom": "^7.17.0",
-    "zustand": "^5.0.14"
+    "react-router-dom": "^7.17.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

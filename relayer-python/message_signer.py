@@ -55,10 +55,11 @@ class MessageSigner:
             "message": cross_chain_message
         }
 
-    def sign_message(self, cross_chain_message: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """使用所有 Relayer 私钥签名消息"""
+    def sign_message(self, cross_chain_message: Dict[str, Any], threshold: int = None) -> List[Dict[str, Any]]:
+        """使用所有 Relayer 私钥签名消息，达到 threshold 即停止"""
         eip712_msg = self.build_eip712_message(cross_chain_message)
         encoded = encode_typed_data(full_message=eip712_msg)
+        limit = threshold if threshold is not None else len(self.accounts)
 
         signatures = []
         for account in self.accounts:
@@ -67,6 +68,8 @@ class MessageSigner:
                 'address': account.address,
                 'signature': signed.signature.hex()
             })
+            if len(signatures) >= limit:
+                break
 
         signatures.sort(key=lambda x: x['address'].lower())
         return signatures
@@ -119,8 +122,9 @@ class MessageSigner:
 class MultiChainSigner:
     """多链签名管理器，按链 ID 管理多个 MessageSigner"""
 
-    def __init__(self, relayer_private_keys: List[str], chain_configs: Dict[str, Dict[str, any]]):
+    def __init__(self, relayer_private_keys: List[str], chain_configs: Dict[str, Dict[str, any]], threshold: int = 0):
         self.accounts = [Account.from_key(pk) for pk in relayer_private_keys]
+        self.threshold = threshold
         self.signers: Dict[str, MessageSigner] = {}
 
         for chain_id_str, network_cfg in chain_configs.items():
@@ -137,9 +141,9 @@ class MultiChainSigner:
         return self.signers[chain_id]
 
     def sign_for_chain(self, cross_chain_message: Dict[str, Any], chain_id: str) -> List[Dict[str, Any]]:
-        """为指定链签名消息"""
+        """为指定链签名消息，达到 threshold 即停"""
         signer = self.get_signer(chain_id)
-        return signer.sign_message(cross_chain_message)
+        return signer.sign_message(cross_chain_message, self.threshold)
 
 
 def parse_bet_created_event(event_data: Dict[str, Any]) -> Dict[str, Any]:

@@ -27,7 +27,7 @@ class MessageRelayer:
         self.message_store = message_store
         self.config = config
         self.threshold = config['threshold']
-        self.required_confirmations = 12  # 固定值，可以根据链配置调整
+        self.required_confirmations = config.get('required_confirmations', 1)  # 本地测试 1 即可
 
         # 使用第一个 Relayer 作为交易发送者
         self.sender_account = Account.from_key(config['relayers'][0])
